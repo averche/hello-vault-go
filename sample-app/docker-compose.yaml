@@ -3,6 +3,8 @@ services:
 
   app:
     build: .
+    networks:
+      - my-network
     environment:
       MY_ADDRESS:                   :8080
       VAULT_ADDRESS:                http://vault-server1:8200
@@ -35,6 +37,8 @@ services:
 
   vault-server1:
     build: ./docker-compose-setup/vault-server/
+    networks:
+      - my-network
     cap_add:
       - IPC_LOCK
     environment:
@@ -53,6 +57,8 @@ services:
 
   vault-server2:
     build: ./docker-compose-setup/vault-server/
+    networks:
+      - my-network
     cap_add:
       - IPC_LOCK
     environment:
@@ -71,6 +77,8 @@ services:
 
   trusted-orchestrator:
     build: ./docker-compose-setup/trusted-orchestrator
+    networks:
+      - my-network
     environment:
       VAULT_ADDRESS:      http://vault-server1:8200
       ORCHESTRATOR_TOKEN: insecure-token
@@ -84,6 +92,8 @@ services:
 
   database:
     image: postgres:14.0
+    networks:
+      - my-network
     environment:
       POSTGRES_PASSWORD: rootpassword
     volumes:
@@ -102,6 +112,8 @@ services:
   # a simulated 3rd party service that requires a specific header to get a 200 response
   secure-service:
     image: nginx:latest
+    networks:
+      - my-network
     environment:
       EXPECTED_API_KEY: my-secret-key # sets the expected value for incoming requests' header X-API-KEY
     volumes:
@@ -120,6 +132,8 @@ services:
   # a dummy service which blocks "docker compose up -d" from returning until all services are up & healthy
   app-healthy:
     image: alpine:latest
+    networks:
+      - my-network
     command: [ "echo", "all services are up & healthy" ]
     depends_on:
       app:
@@ -127,3 +141,7 @@ services:
 
 volumes:
   trusted-orchestrator-volume:
+
+networks:
+  my-network:
+    driver: bridge
