@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
+	"time"
 
 	vault "github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/api/auth/approle"
@@ -36,6 +38,21 @@ func NewVaultAppRoleClient(ctx context.Context, parameters VaultParameters) (*Va
 
 	config := vault.DefaultConfig() // modify for more granular configuration
 	config.Address = parameters.address
+
+	transport := config.HttpClient.Transport.(*http.Transport)
+
+	go func() {
+		for {
+			select {
+			case <-time.After(5 * time.Second):
+				log.Println("CLOSING IDLE CONNECTIONS: started")
+				transport.CloseIdleConnections()
+				log.Println("CLOSING IDLE CONNECTIONS: done")
+			case <-ctx.Done():
+				log.Println("CLOSING IDLE CONNECTIONS: exiting")
+			}
+		}
+	}()
 
 	client, err := vault.NewClient(config)
 	if err != nil {
