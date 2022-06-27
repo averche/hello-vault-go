@@ -34,6 +34,8 @@ services:
         condition: service_healthy
       secure-service:
         condition: service_healthy
+      dns:
+        condition: service_healthy
 
   vault-server1:
     build: ./docker-compose-setup/vault-server/
@@ -53,6 +55,8 @@ services:
       - "8901:8200"
     depends_on:
       database:
+        condition: service_healthy
+      dns:
         condition: service_healthy
 
   vault-server2:
@@ -74,6 +78,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      dns:
+        condition: service_healthy
 
   trusted-orchestrator:
     build: ./docker-compose-setup/trusted-orchestrator
@@ -88,6 +94,8 @@ services:
         target: /tmp
     depends_on:
       vault-server1:
+        condition: service_healthy
+      dns:
         condition: service_healthy
 
   database:
@@ -108,6 +116,9 @@ services:
       interval:     1s
       timeout:      1s
       retries:      30
+    depends_on:
+      dns:
+        condition: service_healthy
 
   # a simulated 3rd party service that requires a specific header to get a 200 response
   secure-service:
@@ -128,6 +139,13 @@ services:
       interval:     1s
       timeout:      1s
       retries:      30
+    depends_on:
+      dns:
+        condition: service_healthy
+
+  dns:
+     image: mvance/unbound:latest
+     network_mode: host
 
   # a dummy service which blocks "docker compose up -d" from returning until all services are up & healthy
   app-healthy:
