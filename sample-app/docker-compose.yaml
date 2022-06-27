@@ -5,7 +5,7 @@ services:
     build: .
     environment:
       MY_ADDRESS:                   :8080
-      VAULT_ADDRESS:                http://vault-server:8200
+      VAULT_ADDRESS:                http://vault-server1:8200
       VAULT_APPROLE_ROLE_ID:        demo-web-app
       VAULT_APPROLE_SECRET_ID_FILE: /tmp/secret
       VAULT_DATABASE_CREDS_PATH:    database/creds/dev-readonly
@@ -24,7 +24,7 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      vault-server:
+      vault-server1:
         condition: service_healthy
       trusted-orchestrator:
         condition: service_healthy
@@ -33,7 +33,7 @@ services:
       secure-service:
         condition: service_healthy
 
-  vault-server:
+  vault-server1:
     build: ./setup/vault-server/
     cap_add:
       - IPC_LOCK
@@ -46,7 +46,25 @@ services:
       API_KEY_PATH:            kv-v2/api-key
       API_KEY_FIELD:           api-key-field
     ports:
-      - "8200:8200"
+      - "8901:8200"
+    depends_on:
+      database:
+        condition: service_healthy
+
+  vault-server2:
+    build: ./setup/vault-server/
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: root
+      APPROLE_ROLE_ID:         demo-web-app
+      ORCHESTRATOR_TOKEN:      insecure-token
+      DATABASE_HOSTNAME:       database
+      DATABASE_PORT:           5432
+      API_KEY_PATH:            kv-v2/api-key
+      API_KEY_FIELD:           api-key-field
+    ports:
+      - "8902:8200"
     depends_on:
       database:
         condition: service_healthy
@@ -54,14 +72,14 @@ services:
   trusted-orchestrator:
     build: ./setup/trusted-orchestrator
     environment:
-      VAULT_ADDRESS:      http://vault-server:8200
+      VAULT_ADDRESS:      http://vault-server1:8200
       ORCHESTRATOR_TOKEN: insecure-token
     volumes:
       - type:   volume
         source: trusted-orchestrator-volume
         target: /tmp
     depends_on:
-      vault-server:
+      vault-server1:
         condition: service_healthy
 
   database:
