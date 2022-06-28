@@ -5,9 +5,9 @@ services:
     build: .
     networks:
       mynetwork:
-        ipv4_address: 11.6.1.3
+        ipv4_address: 192.168.19.3
     dns:
-      - "11.6.1.9"
+      - "192.168.19.9"
     environment:
       MY_ADDRESS:                   :8080
       VAULT_ADDRESS:                http://vlt:8200
@@ -46,7 +46,7 @@ services:
     build: ./docker-compose-setup/vault-server/
     networks:
       mynetwork:
-        ipv4_address: 11.6.1.4
+        ipv4_address: 192.168.19.4
     cap_add:
       - IPC_LOCK
     environment:
@@ -69,7 +69,7 @@ services:
     build: ./docker-compose-setup/vault-server/
     networks:
       mynetwork:
-        ipv4_address: 11.6.1.5
+        ipv4_address: 192.168.19.5
     cap_add:
       - IPC_LOCK
     environment:
@@ -92,7 +92,7 @@ services:
     build: ./docker-compose-setup/trusted-orchestrator
     networks:
       mynetwork:
-        ipv4_address: 11.6.1.6
+        ipv4_address: 192.168.19.6
     environment:
       VAULT_ADDRESS:      http://vault-server1:8200
       ORCHESTRATOR_TOKEN: insecure-token
@@ -110,7 +110,7 @@ services:
     image: postgres:14.0
     networks:
       mynetwork:
-        ipv4_address: 11.6.1.7
+        ipv4_address: 192.168.19.7
     environment:
       POSTGRES_PASSWORD: rootpassword
     volumes:
@@ -131,7 +131,7 @@ services:
     image: nginx:latest
     networks:
       mynetwork:
-        ipv4_address: 11.6.1.8
+        ipv4_address: 192.168.19.8
     environment:
       EXPECTED_API_KEY: my-secret-key # sets the expected value for incoming requests' header X-API-KEY
     volumes:
@@ -151,13 +151,11 @@ services:
     image: mvance/unbound:latest
     networks:
       mynetwork:
-        ipv4_address: 11.6.1.9
-    network_mode: host
+        ipv4_address: 192.168.19.9
     volumes:
       - type:   bind
         source: ./docker-compose-setup/dns/etc/a-records.conf
         target: /opt/unbound/etc/unbound/a-records.conf
-    network_mode: host
     ports:
       - "53:53/tcp"
       - "53:53/udp"
@@ -177,6 +175,6 @@ networks:
   mynetwork:
     driver: bridge
     ipam:
+      driver: default
       config:
-        - subnet:  11.6.1.0/24
-          gateway: 11.6.1.1
+        - subnet: 192.168.19.0/24
