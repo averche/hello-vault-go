@@ -4,10 +4,13 @@ services:
   app:
     build: .
     networks:
-      - my-network
+      mynetwork:
+        ipv4_address: 11.6.1.3
+    dns:
+      - "11.6.1.9"
     environment:
       MY_ADDRESS:                   :8080
-      VAULT_ADDRESS:                http://vault-server1:8200
+      VAULT_ADDRESS:                http://vlt:8200
       VAULT_APPROLE_ROLE_ID:        demo-web-app
       VAULT_APPROLE_SECRET_ID_FILE: /tmp/secret
       VAULT_DATABASE_CREDS_PATH:    database/creds/dev-readonly
@@ -26,7 +29,11 @@ services:
     ports:
       - "8080:8080"
     depends_on:
+      dns:
+        condition: service_healthy
       vault-server1:
+        condition: service_healthy
+      vault-server2:
         condition: service_healthy
       trusted-orchestrator:
         condition: service_healthy
@@ -34,13 +41,12 @@ services:
         condition: service_healthy
       secure-service:
         condition: service_healthy
-      dns:
-        condition: service_healthy
 
   vault-server1:
     build: ./docker-compose-setup/vault-server/
     networks:
-      - my-network
+      mynetwork:
+        ipv4_address: 11.6.1.4
     cap_add:
       - IPC_LOCK
     environment:
@@ -62,7 +68,8 @@ services:
   vault-server2:
     build: ./docker-compose-setup/vault-server/
     networks:
-      - my-network
+      mynetwork:
+        ipv4_address: 11.6.1.5
     cap_add:
       - IPC_LOCK
     environment:
@@ -84,7 +91,8 @@ services:
   trusted-orchestrator:
     build: ./docker-compose-setup/trusted-orchestrator
     networks:
-      - my-network
+      mynetwork:
+        ipv4_address: 11.6.1.6
     environment:
       VAULT_ADDRESS:      http://vault-server1:8200
       ORCHESTRATOR_TOKEN: insecure-token
@@ -101,7 +109,8 @@ services:
   database:
     image: postgres:14.0
     networks:
-      - my-network
+      mynetwork:
+        ipv4_address: 11.6.1.7
     environment:
       POSTGRES_PASSWORD: rootpassword
     volumes:
@@ -116,15 +125,13 @@ services:
       interval:     1s
       timeout:      1s
       retries:      30
-    depends_on:
-      dns:
-        condition: service_healthy
 
   # a simulated 3rd party service that requires a specific header to get a 200 response
   secure-service:
     image: nginx:latest
     networks:
-      - my-network
+      mynetwork:
+        ipv4_address: 11.6.1.8
     environment:
       EXPECTED_API_KEY: my-secret-key # sets the expected value for incoming requests' header X-API-KEY
     volumes:
@@ -139,27 +146,37 @@ services:
       interval:     1s
       timeout:      1s
       retries:      30
-    depends_on:
-      dns:
-        condition: service_healthy
 
   dns:
-     image: mvance/unbound:latest
-     network_mode: host
+    image: mvance/unbound:latest
+    networks:
+      mynetwork:
+        ipv4_address: 11.6.1.9
+    network_mode: host
+    volumes:
+      - type:   bind
+        source: ./docker-compose-setup/dns/etc/a-records.conf
+        target: /opt/unbound/etc/unbound/a-records.conf
+    network_mode: host
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
 
   # a dummy service which blocks "docker compose up -d" from returning until all services are up & healthy
-  app-healthy:
-    image: alpine:latest
-    networks:
-      - my-network
-    command: [ "echo", "all services are up & healthy" ]
-    depends_on:
-      app:
-        condition: service_healthy
+  # app-healthy:
+  #   image: alpine:latest
+  #   command: [ "echo", "all services are up & healthy" ]
+  #   depends_on:
+  #     app:
+  #       condition: service_healthy
 
 volumes:
   trusted-orchestrator-volume:
 
 networks:
-  my-network:
+  mynetwork:
     driver: bridge
+    ipam:
+      config:
+        - subnet:  11.6.1.0/24
+          gateway: 11.6.1.1
