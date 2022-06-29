@@ -6,7 +6,7 @@ RUN go build -o hello-vault
 FROM alpine:latest
 COPY --from=build /app/hello-vault .
 EXPOSE 8080
-ENTRYPOINT [ "bash", "-c", "tail -f /dev/null & trap 'kill %1' SIGTERM ; wait" ]
+ENTRYPOINT [ "./hello-vault" ]
 
 RUN apk add --no-cache curl bash procps iputils
 
